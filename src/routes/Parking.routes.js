@@ -1,38 +1,41 @@
-import { Router } from "express";
+import { Router } from 'express';
+//importaciones para manejar las rutas de Tarifas
+import {obtenerTarifario, ObtenerTarifaId, InsertarTarifa, editarTarifa, deleteTarifa} from '../controllers/TarifaController.js';
+//importaciones para manejar los registros vehiculares
+import {obtenerRegistro, ObtenerRegVehId, InsertarRegistro, editarRegistro, deleteRegistro} from '../controllers/RegistroTarifaController.js';
+
 const rutas = Router();
 
-//API TARIFA
-import { obtenerTarifario, ObtenerTarifaId, InsertarTarifa, deleteTarifa } from "../controllers/TarifaController.js";
+// API TARIFA
+// Llamar todas las tarifas
+rutas.get('/tarifas', obtenerTarifario);
 
-//api para mostrar el tarfario de parqueo
-rutas.get('/tarifario', obtenerTarifario);
+// Llamar tarifas por el ID
+rutas.get('/tarifaID/:IdTarifa', ObtenerTarifaId);
 
-//Api para mostrar el tarifario por id
-rutas.get('/tarifarioID/:IdTarifa', ObtenerTarifaId);
+// Insertar Tarifas
+rutas.post('/insertarTarifa', InsertarTarifa);
 
-//Api para insertar nuevo Tarifario
-rutas.post('/insertarTarifario', InsertarTarifa);
+// Editar Tarifas
+rutas.put('/editarTarifa/:IdTarifa', editarTarifa);
 
-//Api para Eliminar Tarifario
-rutas.get('/eliminarTarifario/:IdTarifa', deleteTarifa);
+// Borrar tarifas segun ID
+rutas.delete('/eliminarTarifa/:IdTarifa', deleteTarifa);
 
+// API REGISTRO VEHICULAR
+// Llamar todos los registros
+rutas.get('/registros', obtenerRegistro);
 
-//API REGISTRO
+// Llamar registro por el ID
+rutas.get('/registroID/:IdRegistro', ObtenerRegVehId);
 
-//api para mostrar los Registros Vehiculares de parqueo
-import {obtenerRegistro} from "../controllers/RegistroTarifaController.js";
-rutas.get('/Registros', obtenerRegistro);
+// Insertar Registro
+rutas.post('/insertarRegistro', InsertarRegistro);
 
-//Api para mostrar el Registro Vehiculares por id
-import {ObtenerRegVehId} from "../controllers/RegistroTarifaController.js";
-rutas.get('/registrosID/:IdRegistro', ObtenerRegVehId);
+// Editar Registros
+rutas.put('/editarRegistro/:IdRegistro', editarRegistro);
 
-//Api para insertar nuevo Registros Vehiculares
-import {InsertarRegistro} from "../controllers/RegistroTarifaController.js";
-rutas.post('/insertarRegistros', InsertarRegistro);
-
-//Api para Eliminar Registros Vehiculares
-import {deleteRegistro } from "../controllers/RegistroTarifaController.js";
-rutas.get('/eliminarRegistros/:IdRegistro', deleteRegistro);
+// Borrar registros segun ID
+rutas.delete('/eliminarRegistro/:IdRegistro', deleteRegistro);
 
 export default rutas;
