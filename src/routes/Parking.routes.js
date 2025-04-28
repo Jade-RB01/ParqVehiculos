@@ -33,6 +33,6 @@ rutas.post('/insertarRegistros', InsertarRegistro);
 
 //Api para Eliminar Registros Vehiculares
 import {deleteRegistro } from "../controllers/RegistroTarifaController.js";
-rutas.delete('/eliminarRegistros/:IdRegistro', deleteRegistro);
+rutas.get('/eliminarRegistros/:IdRegistro', deleteRegistro);
 
 export default rutas;
