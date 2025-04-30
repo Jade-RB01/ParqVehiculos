@@ -20,7 +20,7 @@ rutas.post('/insertarTarifa', InsertarTarifa);
 rutas.put('/editarTarifa/:IdTarifa', editarTarifa);
 
 // Borrar tarifas segun ID
-rutas.get('/eliminarTarifa/:IdTarifa', deleteTarifa);
+rutas.delete('/eliminarTarifa/:IdTarifa', deleteTarifa);
 
 // API REGISTRO VEHICULAR
 // Llamar todos los registros
@@ -36,7 +36,7 @@ rutas.post('/insertarRegistro', InsertarRegistro);
 rutas.put('/editarRegistro/:IdRegistro', editarRegistro);
 
 // Borrar registros segun ID
-rutas.get('/eliminarRegistro/:IdRegistro', deleteRegistro);
+rutas.delete('/eliminarRegistro/:IdRegistro', deleteRegistro);
 
 export default rutas;
 

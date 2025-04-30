@@ -34,6 +34,7 @@ export const obtenerRegistro = async (req, res) => {
                 ...record,
                 FechaRegistro: formatDate(record.FechaRegistro),
                 HoraRegistro: formatTime(record.HoraRegistro),
+                FechaModificacion: formatDate(record.FechaModificacion),
                 CostoTotal: record.CostoTotal,
                 IGV: igv,
                 Subtotal: subtotal
@@ -47,6 +48,7 @@ export const obtenerRegistro = async (req, res) => {
         res.status(500).json({ error: 'Error al obtener los registros de vehículos' });
     }
 };
+
 
 // Función para obtener un Registro Vehicular Específico por su ID
 export const ObtenerRegVehId = async (req, res) => {
@@ -64,6 +66,7 @@ export const ObtenerRegVehId = async (req, res) => {
                 ...record,
                 FechaRegistro: formatDate(record.FechaRegistro),
                 HoraRegistro: formatTime(record.HoraRegistro),
+                FechaModificacion: formatDate(record.FechaModificacion),
                 CostoTotal: record.CostoTotal,
                 IGV: igv,
                 Subtotal: subtotal
@@ -80,11 +83,11 @@ export const ObtenerRegVehId = async (req, res) => {
 
 // Función para insertar un nuevo Registro Vehicular en la base de datos
 export const InsertarRegistro = async (req, res) => {
-    const { Vehiculo, HorasParqueo, IdTarifa } = req.body;
+    const { Nombre_registro, Vehiculo, HorasParqueo, IdTarifa } = req.body;
     
     // Validar que los campos no sean nulos
-    if (Vehiculo == null || HorasParqueo == null || IdTarifa == null) {
-        return res.status(400).json({ message: 'Error, todos los campos (Vehiculo, HorasParqueo, IdTarifa) son requeridos' });
+    if (Nombre_registro == null || Vehiculo == null || HorasParqueo == null || IdTarifa == null) {
+        return res.status(400).json({ message: 'Error, todos los campos (Nombre_registro, Vehiculo, HorasParqueo, IdTarifa) son requeridos' });
     }
     
     try {
@@ -115,16 +118,18 @@ export const InsertarRegistro = async (req, res) => {
         
         // Insertar el registro con el CostoTotal calculado
         const resultado = await conexion.request()
+            .input("Nombre_registro", sql.VarChar(100), Nombre_registro)
             .input("FechaRegistro", sql.Date, parsedFechaRegistro)
             .input("HoraRegistro", sql.Time, parsedHoraRegistro)
             .input("Vehiculo", sql.VarChar(100), Vehiculo)
             .input("HorasParqueo", sql.Int, HorasParqueo)
             .input("CostoTotal", sql.Float, CostoTotal)
             .input("IdTarifa", sql.Int, IdTarifa)
-            .query("INSERT INTO RegistroVehicular (FechaRegistro, HoraRegistro, Vehiculo, HorasParqueo, CostoTotal, IdTarifa) VALUES (@FechaRegistro, @HoraRegistro, @Vehiculo, @HorasParqueo, @CostoTotal, @IdTarifa)");
+            .query("INSERT INTO RegistroVehicular (Nombre_registro, FechaRegistro, HoraRegistro, Vehiculo, HorasParqueo, CostoTotal, IdTarifa) VALUES (@Nombre_registro, @FechaRegistro, @HoraRegistro, @Vehiculo, @HorasParqueo, @CostoTotal, @IdTarifa)");
         
         console.log(resultado);
         res.json({
+            Nombre_registro,
             FechaRegistro: formatDate(parsedFechaRegistro),
             HoraRegistro: formatTime(parsedHoraRegistro),
             Vehiculo,
@@ -143,20 +148,14 @@ export const InsertarRegistro = async (req, res) => {
 // Función para editar un Registro Vehicular existente en la base de datos
 export const editarRegistro = async (req, res) => {
     const { IdRegistro } = req.params;
-    const { Vehiculo, HorasParqueo, IdTarifa } = req.body;
+    const { Nombre_registro, Vehiculo, HorasParqueo, IdTarifa } = req.body;
 
-    // Validar que los campos no sean nulos
-    if (Vehiculo == null || HorasParqueo == null || IdTarifa == null) {
-        return res.status(400).json({ message: 'Error, todos los campos (Vehiculo, HorasParqueo, IdTarifa) son requeridos' });
+    // Verificar si al menos un campo fue proporcionado
+    if (Nombre_registro == null && Vehiculo == null && HorasParqueo == null && IdTarifa == null) {
+        return res.status(400).json({ message: 'Error, debe proporcionar al menos un campo para actualizar (Nombre_registro, Vehiculo, HorasParqueo, IdTarifa)' });
     }
 
     try {
-        // Obtener la fecha y hora actuales, ajustadas a UTC-5
-        const now = new Date();
-        const localTime = new Date(now.getTime() - 5 * 60 * 60 * 1000); // Restar 5 horas
-        const parsedFechaRegistro = localTime;
-        const parsedHoraRegistro = localTime;
-
         const conexion = await obtenerConexion();
 
         // Verificar si el registro existe
@@ -168,9 +167,21 @@ export const editarRegistro = async (req, res) => {
             return res.status(404).json({ message: 'Error, registro no encontrado para el IdRegistro proporcionado' });
         }
 
+        // Obtener la fecha actual, ajustada a UTC-5
+        const now = new Date();
+        const localTime = new Date(now.getTime() - 5 * 60 * 60 * 1000); // Restar 5 horas
+        const parsedFechaModificacion = localTime;
+
+        // Obtener los valores actuales del registro
+        const currentRecord = registroExistente.recordset[0];
+        const currentNombre = Nombre_registro != null ? Nombre_registro : currentRecord.Nombre_registro;
+        const currentVehiculo = Vehiculo != null ? Vehiculo : currentRecord.Vehiculo;
+        const currentHorasParqueo = HorasParqueo != null ? HorasParqueo : currentRecord.HorasParqueo;
+        const currentIdTarifa = IdTarifa != null ? IdTarifa : currentRecord.IdTarifa;
+
         // Obtener el CostoTarifa desde TblTarifa usando IdTarifa
         const tarifaResult = await conexion.request()
-            .input('IdTarifa', sql.Int, IdTarifa)
+            .input('IdTarifa', sql.Int, currentIdTarifa)
             .query('SELECT CostoTarifa FROM TblTarifa WHERE IdTarifa = @IdTarifa');
         
         if (tarifaResult.recordset.length === 0) {
@@ -180,46 +191,68 @@ export const editarRegistro = async (req, res) => {
         const CostoTarifa = tarifaResult.recordset[0].CostoTarifa;
 
         // Calcular CostoTotal = HorasParqueo * CostoTarifa (incluye IGV)
-        const CostoTotal = HorasParqueo * CostoTarifa;
+        const CostoTotal = currentHorasParqueo * CostoTarifa;
 
         // Calcular IGV y Subtotal para la respuesta
         const { subtotal, igv } = calcularIGV(CostoTotal);
 
-        // Actualizar el registro
-        const resultado = await conexion.request()
-            .input('IdRegistro', sql.Int, IdRegistro)
-            .input('FechaRegistro', sql.Date, parsedFechaRegistro)
-            .input('HoraRegistro', sql.Time, parsedHoraRegistro)
-            .input('Vehiculo', sql.VarChar(100), Vehiculo)
-            .input('HorasParqueo', sql.Int, HorasParqueo)
-            .input('CostoTotal', sql.Float, CostoTotal)
-            .input('IdTarifa', sql.Int, IdTarifa)
-            .query(`
-                UPDATE RegistroVehicular 
-                SET FechaRegistro = @FechaRegistro,
-                    HoraRegistro = @HoraRegistro,
-                    Vehiculo = @Vehiculo,
-                    HorasParqueo = @HorasParqueo,
-                    CostoTotal = @CostoTotal,
-                    IdTarifa = @IdTarifa
-                WHERE IdRegistro = @IdRegistro
-            `);
+        // Construir la consulta dinámicamente
+        let query = 'UPDATE RegistroVehicular SET ';
+        const updates = [];
+        const request = conexion.request().input('IdRegistro', sql.Int, IdRegistro);
 
-        console.log(resultado);
-        res.json({
-            IdRegistro,
-            FechaRegistro: formatDate(parsedFechaRegistro),
-            HoraRegistro: formatTime(parsedHoraRegistro),
-            Vehiculo,
-            HorasParqueo,
-            CostoTotal,
+        if (Nombre_registro != null) {
+            updates.push('Nombre_registro = @Nombre_registro');
+            request.input('Nombre_registro', sql.VarChar(100), Nombre_registro);
+        }
+        if (Vehiculo != null) {
+            updates.push('Vehiculo = @Vehiculo');
+            request.input('Vehiculo', sql.VarChar(100), Vehiculo);
+        }
+        if (HorasParqueo != null) {
+            updates.push('HorasParqueo = @HorasParqueo');
+            request.input('HorasParqueo', sql.Int, HorasParqueo);
+        }
+        if (IdTarifa != null) {
+            updates.push('IdTarifa = @IdTarifa');
+            request.input('IdTarifa', sql.Int, IdTarifa);
+        }
+
+        // Siempre actualizar CostoTotal y FechaModificacion
+        updates.push('CostoTotal = @CostoTotal');
+        updates.push('FechaModificacion = @FechaModificacion');
+        request.input('CostoTotal', sql.Float, CostoTotal);
+        request.input('FechaModificacion', sql.Date, parsedFechaModificacion);
+
+        // Unir las partes de la consulta
+        query += updates.join(', ') + ' WHERE IdRegistro = @IdRegistro';
+
+        // Ejecutar la consulta
+        const resultado = await request.query(query);
+
+        // Obtener el registro actualizado para devolverlo
+        const registroActualizado = await conexion.request()
+            .input('IdRegistro', sql.Int, IdRegistro)
+            .query('SELECT * FROM RegistroVehicular WHERE IdRegistro = @IdRegistro');
+
+        // Formatear fechas y hora en la respuesta
+        const formattedResult = {
+            ...registroActualizado.recordset[0],
+            FechaRegistro: formatDate(registroActualizado.recordset[0].FechaRegistro),
+            HoraRegistro: formatTime(registroActualizado.recordset[0].HoraRegistro),
+            FechaModificacion: formatDate(registroActualizado.recordset[0].FechaModificacion),
             IGV: igv,
-            Subtotal: subtotal,
-            IdTarifa
-        });
+            Subtotal: subtotal
+        };
+
+        console.log('Resultado de la actualización:', resultado);
+        res.json(formattedResult);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al editar el registro vehicular' });
+        console.error('Error detallado al editar el registro vehicular:', error);
+        res.status(500).json({ 
+            error: 'Error al editar el registro vehicular',
+            details: error.message 
+        });
     }
 };
 
